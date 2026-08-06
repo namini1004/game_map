@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>나만의 장애물 맵 만들기</title>
+<style>
+  :root{--bg:#07111f;--panel:#101c2e;--panel2:#16243a;--line:#2b3d59;--text:#f6f8ff;--muted:#9fb0c8;--accent:#62e3ff;--accent2:#8cff98;--danger:#ff6178;--gold:#ffd15c}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:radial-gradient(circle at top,#142846 0,#07111f 52%,#040914 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,"Noto Sans KR",sans-serif;overflow:hidden}
+  button,input,textarea{font:inherit}
+  button{border:0;border-radius:12px;background:#203654;color:#fff;padding:10px 13px;font-weight:800;cursor:pointer;transition:.16s transform,.16s filter,.16s background}
+  button:hover{filter:brightness(1.12)} button:active{transform:scale(.97)} button.active{background:linear-gradient(135deg,#18a8d5,#3572ff);box-shadow:0 0 0 2px #91f2ff inset}
+  button.primary{background:linear-gradient(135deg,#13b78c,#2a87ff)} button.warn{background:linear-gradient(135deg,#ff8a34,#ff4b6d)} button.ghost{background:#17263c;border:1px solid #314765}
+  #app{height:100%;display:grid;grid-template-rows:auto 1fr auto;gap:10px;padding:10px;max-width:1500px;margin:auto}
+  header{display:flex;align-items:center;gap:10px;background:rgba(13,25,43,.88);backdrop-filter:blur(12px);border:1px solid #263b58;border-radius:18px;padding:10px 13px;box-shadow:0 14px 40px #0007}
+  .brand{font-size:18px;font-weight:950;white-space:nowrap}.brand b{color:var(--accent)}
+  .stats{display:flex;gap:8px;flex-wrap:wrap;flex:1}.chip{background:#091524;border:1px solid #29405f;border-radius:999px;padding:7px 11px;font-size:13px;color:var(--muted)}.chip strong{color:#fff}
+  .header-actions{display:flex;gap:7px;flex-wrap:wrap}
+  main{min-height:0;display:grid;grid-template-columns:250px 1fr 290px;gap:10px}
+  .panel{min-height:0;background:rgba(14,27,46,.92);border:1px solid #263b58;border-radius:18px;padding:12px;box-shadow:0 14px 40px #0006;overflow:auto}
+  .panel h3{margin:4px 0 10px;font-size:14px;color:#dbe9ff}.small{font-size:12px;color:var(--muted);line-height:1.55}
+  .tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tool{min-height:67px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px}.tool span{font-size:21px}.tool small{font-size:11px;color:#c4d0e3}
+  .subhead{font-size:12px;color:#86a4c8;font-weight:800;margin:14px 0 7px;text-transform:uppercase;letter-spacing:.08em}
+  .row{display:flex;gap:7px}.row>*{flex:1}
+  .field{display:grid;gap:5px;margin:8px 0}.field label{font-size:11px;color:#98aac2}.field input,.field textarea{width:100%;background:#081321;color:#fff;border:1px solid #2a405d;border-radius:10px;padding:9px}.field textarea{min-height:95px;resize:vertical;font-size:11px}
+  #stageWrap{position:relative;min-width:0;min-height:0;border-radius:18px;overflow:hidden;border:1px solid #2d4565;background:#06101c;box-shadow:0 18px 44px #0008}
+  canvas{width:100%;height:100%;display:block;touch-action:none;image-rendering:auto}
+  #hint{position:absolute;left:12px;top:12px;background:#071322d9;border:1px solid #2b4464;border-radius:11px;padding:8px 10px;font-size:12px;color:#c8d7ea;pointer-events:none;max-width:min(420px,75%)}
+  #toast{position:absolute;left:50%;bottom:18px;transform:translate(-50%,20px);background:#06111fef;border:1px solid #4e6f94;border-radius:999px;padding:9px 14px;font-weight:800;opacity:0;transition:.22s;pointer-events:none;white-space:nowrap}#toast.show{opacity:1;transform:translate(-50%,0)}
+  .legend{display:grid;gap:7px}.legend div{display:flex;align-items:center;gap:8px;font-size:12px;color:#c7d5e7}.swatch{width:16px;height:16px;border-radius:4px;border:1px solid #ffffff44}
+  .mission{background:#091725;border:1px solid #2b405d;border-radius:12px;padding:10px;font-size:12px;line-height:1.55;color:#bdcde0}
+  footer{display:none;align-items:center;justify-content:center;gap:12px;padding:5px}.mobile-btn{width:64px;height:54px;border-radius:17px;font-size:21px;background:#1b3453d9;border:1px solid #4d6e97;user-select:none;touch-action:none}.mobile-btn.jump{width:94px;background:#1d6e5c}
+  #modal{position:fixed;inset:0;background:#020711d9;display:none;place-items:center;padding:20px;z-index:20}#modal.show{display:grid}.modal-card{width:min(520px,100%);background:#101d31;border:1px solid #365071;border-radius:22px;padding:22px;text-align:center;box-shadow:0 30px 100px #000}.modal-card h2{font-size:30px;margin:0 0 8px}.modal-card p{color:#bdcbe0}.modal-card .big{font-size:42px;font-weight:950;color:var(--gold);margin:12px}
+  @media(max-width:1000px){main{grid-template-columns:210px 1fr}.right{display:none}.brand{font-size:15px}.header-actions button{padding:8px 10px}}
+  @media(max-width:720px){#app{padding:6px;gap:6px}header{padding:7px;border-radius:14px}.brand{display:none}.stats{gap:4px}.chip{font-size:11px;padding:5px 8px}.header-actions button{font-size:11px;padding:7px 8px}main{display:block;position:relative}.left{position:absolute;z-index:8;left:6px;top:6px;bottom:6px;width:210px;transform:translateX(-230px);transition:.2s}.left.open{transform:none}#stageWrap{height:100%}footer{display:flex}.tool{min-height:58px}#hint{font-size:10px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">🧱 <b>OBBY LAB</b> 맵 메이커</div>
+    <div class="stats">
+      <div class="chip">모드 <strong id="modeLabel">에디터</strong></div>
+      <div class="chip">시간 <strong id="timeLabel">00:00.000</strong></div>
+      <div class="chip">최고 <strong id="bestLabel">--</strong></div>
+      <div class="chip">체크포인트 <strong id="checkpointLabel">시작</strong></div>
+    </div>
+    <div class="header-actions">
+      <button id="menuBtn" class="ghost">☰ 도구</button>
+      <button id="editBtn" class="active">✏️ 제작</button>
+      <button id="playBtn" class="primary">▶ 플레이</button>
+      <button id="resetBtn" class="ghost">↺ 초기화</button>
+    </div>
+  </header>
+
+  <main>
+    <aside class="panel left" id="leftPanel">
+      <h3>맵 도구</h3>
+      <div class="tool-grid" id="tools">
+        <button class="tool active" data-tool="select"><span>🖱️</span><small>선택·이동</small></button>
+        <button class="tool" data-tool="platform"><span>🟦</span><small>일반 발판</small></button>
+        <button class="tool" data-tool="moving"><span>↔️</span><small>이동 발판</small></button>
+        <button class="tool" data-tool="jump"><span>⬆️</span><small>점프 발판</small></button>
+        <button class="tool" data-tool="spike"><span>🔺</span><small>가시</small></button>
+        <button class="tool" data-tool="checkpoint"><span>🚩</span><small>체크포인트</small></button>
+        <button class="tool" data-tool="goal"><span>🏁</span><small>도착 지점</small></button>
+        <button class="tool" data-tool="erase"><span>🗑️</span><small>삭제</small></button>
+      </div>
+      <div class="subhead">선택 항목</div>
+      <div id="selectionInfo" class="mission">항목을 선택하면 크기와 이동 범위를 조정할 수 있습니다.</div>
+      <div id="selectionControls" style="display:none">
+        <div class="field"><label>가로 크기</label><input id="widthInput" type="range" min="32" max="320" step="16"></div>
+        <div class="field"><label>세로 크기</label><input id="heightInput" type="range" min="16" max="160" step="8"></div>
+        <div class="field" id="rangeField"><label>이동 범위</label><input id="rangeInput" type="range" min="40" max="400" step="20"></div>
+        <button id="deleteSelected" class="warn" style="width:100%">선택 항목 삭제</button>
+      </div>
+      <div class="subhead">빠른 작업</div>
+      <div class="row"><button id="undoBtn">↶ 실행취소</button><button id="clearBtn" class="warn">전체 삭제</button></div>
+    </aside>
+
+    <section id="stageWrap">
+      <canvas id="game"></canvas>
+      <div id="hint">제작 모드: 도구를 고르고 화면을 클릭하세요. 선택 도구에서는 드래그로 이동합니다.</div>
+      <div id="toast"></div>
+    </section>
+
+    <aside class="panel right">
+      <h3>맵 공유</h3>
+      <div class="mission">맵 코드를 복사해 친구에게 보내세요. 친구는 코드를 붙여넣고 <b>불러오기</b>를 누르면 서버 없이 바로 플레이할 수 있습니다.</div>
+      <div class="field"><label>맵 이름</label><input id="mapName" maxlength="30" value="남인의 첫 번째 오비"></div>
+      <div class="row"><button id="saveBtn" class="primary">💾 저장</button><button id="loadLocalBtn">📂 불러오기</button></div>
+      <div class="field"><label>JSON 맵 코드</label><textarea id="mapCode" placeholder="맵 코드가 여기에 표시됩니다."></textarea></div>
+      <div class="row"><button id="copyBtn">📋 코드 복사</button><button id="importBtn" class="primary">📥 코드 불러오기</button></div>
+      <div class="subhead">조작법</div>
+      <div class="legend">
+        <div><span class="swatch" style="background:#4cc9f0"></span>← → 또는 A D 이동</div>
+        <div><span class="swatch" style="background:#8cff98"></span>Space / ↑ / W 점프</div>
+        <div><span class="swatch" style="background:#ff6178"></span>가시에 닿거나 추락하면 재시작</div>
+        <div><span class="swatch" style="background:#ffd15c"></span>체크포인트 통과 시 저장</div>
+      </div>
+      <div class="subhead">재미있게 만드는 법</div>
+      <div class="small">쉬운 점프 → 이동 발판 → 가시 회피 → 긴 점프 → 마지막 체크포인트 순으로 난이도를 올려보세요. 체크포인트를 너무 자주 놓으면 긴장감이 줄어듭니다.</div>
+    </aside>
+  </main>
+
+  <footer>
+    <button class="mobile-btn" id="leftTouch">◀</button>
+    <button class="mobile-btn jump" id="jumpTouch">JUMP</button>
+    <button class="mobile-btn" id="rightTouch">▶</button>
+  </footer>
+</div>
+
+<div id="modal">
+  <div class="modal-card">
+    <h2>🎉 맵 클리어!</h2>
+    <p id="clearName">멋진 맵을 완주했습니다.</p>
+    <div class="big" id="clearTime">00:00.000</div>
+    <p id="recordText">새로운 최고 기록!</p>
+    <div class="row"><button id="retryBtn" class="primary">다시 도전</button><button id="backEditBtn">맵 수정</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const canvas=document.getElementById('game'), ctx=canvas.getContext('2d');
+const stageWrap=document.getElementById('stageWrap');
+const modeLabel=document.getElementById('modeLabel'),timeLabel=document.getElementById('timeLabel'),bestLabel=document.getElementById('bestLabel'),checkpointLabel=document.getElementById('checkpointLabel');
+const hint=document.getElementById('hint'),toastEl=document.getElementById('toast'),leftPanel=document.getElementById('leftPanel');
+const W=1600,H=900, GRID=32;
+let scale=1, offX=0, offY=0;
+let mode='edit',tool='select',selected=null,drag=null,history=[];
+let keys={left:false,right:false,jump:false};
+let startTime=0,elapsed=0,running=false,last=performance.now(),camera={x:0,y:0};
+let spawn={x:90,y:730},checkpoint={...spawn,label:'시작'},particles=[];
+let player={x:spawn.x,y:spawn.y,w:28,h:42,vx:0,vy:0,onGround:false,coyote:0,jumpBuffer:0,dead:false};
+let map={name:'남인의 첫 번째 오비',objects:[]};
+const typeInfo={
+ platform:{name:'일반 발판',color:'#3984db'},moving:{name:'이동 발판',color:'#9b5de5'},jump:{name:'점프 발판',color:'#27d89a'},spike:{name:'가시',color:'#ff496b'},checkpoint:{name:'체크포인트',color:'#ffd15c'},goal:{name:'도착 지점',color:'#ffffff'}
+};
+function defaultMap(){return {name:'남인의 첫 번째 오비',objects:[
+ {id:uid(),type:'platform',x:32,y:800,w:300,h:40},
+ {id:uid(),type:'platform',x:390,y:720,w:180,h:28},
+ {id:uid(),type:'jump',x:610,y:790,w:100,h:20},
+ {id:uid(),type:'platform',x:790,y:640,w:180,h:28},
+ {id:uid(),type:'spike',x:990,y:780,w:96,h:24},
+ {id:uid(),type:'moving',x:1090,y:660,w:160,h:26,range:180,speed:1.1,axis:'x',phase:0},
+ {id:uid(),type:'checkpoint',x:1320,y:600,w:42,h:70},
+ {id:uid(),type:'platform',x:1280,y:680,w:210,h:28},
+ {id:uid(),type:'goal',x:1510,y:560,w:48,h:120}
+]};}
+function uid(){return Math.random().toString(36).slice(2,10)}
+function snapshot(){history.push(JSON.stringify(map));if(history.length>40)history.shift()}
+function undo(){if(!history.length)return toast('되돌릴 작업이 없습니다.');map=JSON.parse(history.pop());selected=null;toast('실행 취소');}
+function resize(){const r=stageWrap.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);canvas.style.width=r.width+'px';canvas.style.height=r.height+'px';ctx.setTransform(dpr,0,0,dpr,0,0);scale=Math.min(r.width/W,r.height/H);offX=(r.width-W*scale)/2;offY=(r.height-H*scale)/2;}
+window.addEventListener('resize',resize);resize();
+function screenToWorld(clientX,clientY){const r=canvas.getBoundingClientRect();return{x:(clientX-r.left-offX)/scale+camera.x,y:(clientY-r.top-offY)/scale+camera.y}}
+function snap(v){return Math.round(v/GRID)*GRID}
+function toast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(toastEl.t);toastEl.t=setTimeout(()=>toastEl.classList.remove('show'),1500)}
+function rects(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
+function objectRect(o,t=elapsed/1000){if(o.type!=='moving')return{x:o.x,y:o.y,w:o.w,h:o.h};const d=Math.sin(t*(o.speed||1)+(o.phase||0))*(o.range||120)/2;return{x:o.x+(o.axis==='y'?0:d),y:o.y+(o.axis==='y'?d:0),w:o.w,h:o.h,dx:o.axis==='y'?0:Math.cos(t*(o.speed||1)+(o.phase||0))*(o.range||120)/2*(o.speed||1)/60,dy:o.axis==='y'?Math.cos(t*(o.speed||1)+(o.phase||0))*(o.range||120)/2*(o.speed||1)/60:0};}
+function addObject(x,y){if(tool==='select'||tool==='erase')return; snapshot();const base={id:uid(),type:tool,x:snap(x),y:snap(y),w:128,h:24};if(tool==='spike'){base.w=96;base.h=24}if(tool==='checkpoint'){base.w=42;base.h=70}if(tool==='goal'){base.w=48;base.h=120}if(tool==='jump'){base.w=96;base.h=20}if(tool==='moving'){base.w=144;base.h=24;base.range=180;base.speed=1;base.axis='x';base.phase=Math.random()*6.28}map.objects.push(base);selected=base;updateSelection();}
+function hitObject(x,y){for(let i=map.objects.length-1;i>=0;i--){const o=map.objects[i],r=objectRect(o);if(x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h)return o}return null}
+canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);const p=screenToWorld(e.clientX,e.clientY);if(mode==='play')return;if(tool==='erase'){const o=hitObject(p.x,p.y);if(o){snapshot();map.objects=map.objects.filter(v=>v.id!==o.id);selected=null;updateSelection();}}else if(tool==='select'){selected=hitObject(p.x,p.y);if(selected){snapshot();drag={dx:p.x-selected.x,dy:p.y-selected.y}}updateSelection();}else addObject(p.x,p.y)});
+canvas.addEventListener('pointermove',e=>{if(mode!=='edit'||!drag||!selected)return;const p=screenToWorld(e.clientX,e.clientY);selected.x=Math.max(0,Math.min(W-selected.w,snap(p.x-drag.dx)));selected.y=Math.max(0,Math.min(H-selected.h,snap(p.y-drag.dy)));});
+canvas.addEventListener('pointerup',()=>drag=null);
+document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>{tool=b.dataset.tool;document.querySelectorAll('[data-tool]').forEach(x=>x.classList.toggle('active',x===b));});
+function updateSelection(){const c=document.getElementById('selectionControls'),info=document.getElementById('selectionInfo');if(!selected){c.style.display='none';info.textContent='항목을 선택하면 크기와 이동 범위를 조정할 수 있습니다.';return}c.style.display='block';info.innerHTML=`<b>${typeInfo[selected.type].name}</b><br>x ${Math.round(selected.x)} · y ${Math.round(selected.y)}`;widthInput.value=selected.w;heightInput.value=selected.h;rangeField.style.display=selected.type==='moving'?'grid':'none';if(selected.type==='moving')rangeInput.value=selected.range||180;}
+const widthInput=document.getElementById('widthInput'),heightInput=document.getElementById('heightInput'),rangeInput=document.getElementById('rangeInput'),rangeField=document.getElementById('rangeField');
+widthInput.oninput=()=>{if(selected)selected.w=+widthInput.value};heightInput.oninput=()=>{if(selected)selected.h=+heightInput.value};rangeInput.oninput=()=>{if(selected)selected.range=+rangeInput.value};
+document.getElementById('deleteSelected').onclick=()=>{if(!selected)return;snapshot();map.objects=map.objects.filter(o=>o.id!==selected.id);selected=null;updateSelection()};
+function setMode(next){mode=next;modeLabel.textContent=next==='edit'?'에디터':'플레이';document.getElementById('editBtn').classList.toggle('active',next==='edit');document.getElementById('playBtn').classList.toggle('active',next==='play');leftPanel.classList.remove('open');if(next==='play'){hint.textContent='플레이 모드: A/D 또는 방향키로 이동, W/↑/Space로 점프하세요.';beginRun()}else{running=false;camera.x=0;camera.y=0;hint.textContent='제작 모드: 도구를 고르고 화면을 클릭하세요. 선택 도구에서는 드래그로 이동합니다.'}}
+document.getElementById('editBtn').onclick=()=>setMode('edit');document.getElementById('playBtn').onclick=()=>setMode('play');document.getElementById('resetBtn').onclick=()=>mode==='play'?beginRun():resetMap();document.getElementById('menuBtn').onclick=()=>leftPanel.classList.toggle('open');
+function beginRun(){spawn={x:90,y:730};checkpoint={...spawn,label:'시작'};checkpointLabel.textContent='시작';player={x:spawn.x,y:spawn.y,w:28,h:42,vx:0,vy:0,onGround:false,coyote:0,jumpBuffer:0,dead:false};camera.x=0;camera.y=0;startTime=performance.now();elapsed=0;running=true;document.getElementById('modal').classList.remove('show')}
+function respawn(){player.x=checkpoint.x;player.y=checkpoint.y;player.vx=0;player.vy=0;player.dead=false;for(let i=0;i<18;i++)particles.push({x:player.x,y:player.y,vx:(Math.random()-.5)*8,vy:(Math.random()-.5)*8,life:30,color:'#ff6178'});toast('체크포인트에서 재시작')}
+function finish(){running=false;const ms=elapsed,name=map.name||'친구의 맵';const key='obby_best_'+hash(JSON.stringify(map.objects));const old=+(localStorage.getItem(key)||0);const isBest=!old||ms<old;if(isBest)localStorage.setItem(key,ms);document.getElementById('clearName').textContent=`${name} 완주 성공!`;document.getElementById('clearTime').textContent=formatTime(ms);document.getElementById('recordText').textContent=isBest?'🏆 새로운 최고 기록!':`최고 기록 ${formatTime(old)}`;document.getElementById('modal').classList.add('show');refreshBest()}
+function hash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return String(h)}
+function refreshBest(){const key='obby_best_'+hash(JSON.stringify(map.objects));const v=+(localStorage.getItem(key)||0);bestLabel.textContent=v?formatTime(v):'--'}
+function formatTime(ms){const m=Math.floor(ms/60000),s=Math.floor(ms%60000/1000),x=Math.floor(ms%1000);return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(x).padStart(3,'0')}`}
+function update(dt){if(mode!=='play'||!running)return;elapsed=performance.now()-startTime;timeLabel.textContent=formatTime(elapsed);if(keys.jump)player.jumpBuffer=7;else player.jumpBuffer=Math.max(0,player.jumpBuffer-1);player.coyote=player.onGround?7:Math.max(0,player.coyote-1);const accel=1.05,max=7.2;player.vx+=(keys.right?accel:0)-(keys.left?accel:0);if(!keys.left&&!keys.right)player.vx*=.78;player.vx=Math.max(-max,Math.min(max,player.vx));if(player.jumpBuffer>0&&player.coyote>0){player.vy=-15.2;player.jumpBuffer=0;player.coyote=0;player.onGround=false}player.vy+=.72;player.vy=Math.min(player.vy,19);
+  let prevX=player.x,prevY=player.y;player.x+=player.vx;player.x=Math.max(0,Math.min(W-player.w,player.x));
+  for(const o of map.objects){if(!['platform','moving','jump'].includes(o.type))continue;const r=objectRect(o);if(rects(player,r)){if(player.vx>0)player.x=r.x-player.w;else if(player.vx<0)player.x=r.x+r.w;player.vx=0}}
+  player.y+=player.vy;player.onGround=false;
+  for(const o of map.objects){if(!['platform','moving','jump'].includes(o.type))continue;const r=objectRect(o);if(rects(player,r)){if(player.vy>0&&prevY+player.h<=r.y+12){player.y=r.y-player.h;player.vy=0;player.onGround=true;if(o.type==='moving'){player.x+=(r.dx||0)*dt*60;player.y+=(r.dy||0)*dt*60}if(o.type==='jump'){player.vy=-20.5;player.onGround=false;burst(player.x+player.w/2,player.y+player.h,'#27d89a',12)}}else if(player.vy<0&&prevY>=r.y+r.h-12){player.y=r.y+r.h;player.vy=0}}
+  }
+  for(const o of map.objects){const r=objectRect(o);if(o.type==='spike'&&rects(player,r))return respawn();if(o.type==='checkpoint'&&rects(player,r)){const label='CP '+(map.objects.filter(x=>x.type==='checkpoint').indexOf(o)+1);if(checkpoint.id!==o.id){checkpoint={x:o.x+7,y:o.y-player.h-4,label,id:o.id};checkpointLabel.textContent=label;burst(o.x+o.w/2,o.y,'#ffd15c',18);toast(label+' 저장!')}}if(o.type==='goal'&&rects(player,r))return finish()}
+  if(player.y>H+160)respawn();camera.x+=(Math.max(0,Math.min(W-canvas.clientWidth/scale,player.x-canvas.clientWidth/scale*.42))-camera.x)*.08;camera.y+=(Math.max(0,Math.min(H-canvas.clientHeight/scale,player.y-canvas.clientHeight/scale*.55))-camera.y)*.08;
+  particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.life--});particles=particles.filter(p=>p.life>0)
+}
+function burst(x,y,color,n){for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*9,vy:(Math.random()-.7)*9,life:25+Math.random()*20,color})}
+function draw(){const cw=canvas.clientWidth,ch=canvas.clientHeight;ctx.clearRect(0,0,cw,ch);ctx.save();ctx.translate(offX,offY);ctx.scale(scale,scale);ctx.translate(-camera.x,-camera.y);drawBackground();for(const o of map.objects)drawObject(o);if(mode==='edit')drawEditor();if(mode==='play')drawPlayer();for(const p of particles){ctx.globalAlpha=Math.max(0,p.life/35);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,5,5)}ctx.globalAlpha=1;ctx.restore()}
+function drawBackground(){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#102440');g.addColorStop(1,'#07111f');ctx.fillStyle=g;ctx.fillRect(camera.x,camera.y,W,H);ctx.strokeStyle='#17314f';ctx.lineWidth=1;for(let x=0;x<=W;x+=GRID){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<=H;y+=GRID){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}for(let i=0;i<80;i++){const x=(i*197)%W,y=(i*83)%H;ctx.fillStyle=i%4===0?'#62e3ff55':'#ffffff24';ctx.fillRect(x,y,2,2)}}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r)}
+function drawObject(o){const r=objectRect(o);ctx.save();if(o.type==='platform'||o.type==='moving'){ctx.shadowColor=typeInfo[o.type].color;ctx.shadowBlur=10;ctx.fillStyle=typeInfo[o.type].color;roundRect(r.x,r.y,r.w,r.h,7);ctx.fill();ctx.fillStyle='#ffffff33';ctx.fillRect(r.x+8,r.y+5,Math.max(0,r.w-16),4);if(o.type==='moving'){ctx.setLineDash([8,8]);ctx.strokeStyle='#c9a7ff88';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(o.x-(o.range||180)/2,o.y+o.h/2);ctx.lineTo(o.x+o.w+(o.range||180)/2,o.y+o.h/2);ctx.stroke();ctx.setLineDash([])}}
+ else if(o.type==='jump'){ctx.fillStyle='#24c98b';roundRect(r.x,r.y,r.w,r.h,8);ctx.fill();ctx.fillStyle='#dffff3';for(let x=r.x+14;x<r.x+r.w-6;x+=24){ctx.beginPath();ctx.moveTo(x,r.y+15);ctx.lineTo(x+8,r.y+4);ctx.lineTo(x+16,r.y+15);ctx.fill()}}
+ else if(o.type==='spike'){ctx.fillStyle='#ff496b';const n=Math.max(1,Math.floor(r.w/24));for(let i=0;i<n;i++){const x=r.x+i*r.w/n;ctx.beginPath();ctx.moveTo(x,r.y+r.h);ctx.lineTo(x+r.w/n/2,r.y);ctx.lineTo(x+r.w/n,r.y+r.h);ctx.fill()}}
+ else if(o.type==='checkpoint'){ctx.fillStyle='#d7e0ef';ctx.fillRect(r.x+5,r.y,5,r.h);ctx.fillStyle='#ffd15c';ctx.beginPath();ctx.moveTo(r.x+10,r.y+4);ctx.lineTo(r.x+r.w,r.y+14);ctx.lineTo(r.x+10,r.y+29);ctx.fill();ctx.fillStyle='#ffd15c55';ctx.beginPath();ctx.arc(r.x+8,r.y+r.h,30,0,Math.PI*2);ctx.fill()}
+ else if(o.type==='goal'){ctx.fillStyle='#ecf3ff';ctx.fillRect(r.x+5,r.y,5,r.h);const s=14;for(let yy=0;yy<4;yy++)for(let xx=0;xx<3;xx++){ctx.fillStyle=(xx+yy)%2?'#111':'#fff';ctx.fillRect(r.x+10+xx*s,r.y+yy*s,s,s)}ctx.shadowColor='#8cff98';ctx.shadowBlur=18;ctx.strokeStyle='#8cff98';ctx.lineWidth=3;ctx.strokeRect(r.x-8,r.y-10,r.w+18,r.h+18)}ctx.restore()}
+function drawEditor(){if(selected){const r=objectRect(selected);ctx.strokeStyle='#fff';ctx.lineWidth=3/scale;ctx.setLineDash([9,6]);ctx.strokeRect(r.x-5,r.y-5,r.w+10,r.h+10);ctx.setLineDash([])}ctx.fillStyle='#84a2c0';ctx.font='18px system-ui';ctx.fillText('시작',55,790);ctx.strokeStyle='#8cff98';ctx.strokeRect(spawn.x-8,spawn.y-8,player.w+16,player.h+16)}
+function drawPlayer(){ctx.save();ctx.translate(player.x,player.y);ctx.shadowColor='#62e3ff';ctx.shadowBlur=14;ctx.fillStyle='#62e3ff';roundRect(0,6,player.w,player.h-6,9);ctx.fill();ctx.fillStyle='#07111f';ctx.fillRect(6,16,5,5);ctx.fillRect(18,16,5,5);ctx.fillStyle='#fff';ctx.fillRect(7,17,2,2);ctx.fillRect(19,17,2,2);ctx.strokeStyle='#07111f';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(9,30);ctx.lineTo(20,30);ctx.stroke();ctx.restore()}
+function loop(now){const dt=Math.min(2,(now-last)/16.67);last=now;update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+function keySet(e,v){if(['ArrowLeft','a','A'].includes(e.key))keys.left=v;if(['ArrowRight','d','D'].includes(e.key))keys.right=v;if(['ArrowUp','w','W',' '].includes(e.key)){keys.jump=v;e.preventDefault()}}
+addEventListener('keydown',e=>keySet(e,true));addEventListener('keyup',e=>keySet(e,false));
+function bindTouch(id,key){const el=document.getElementById(id);['pointerdown'].forEach(ev=>el.addEventListener(ev,e=>{e.preventDefault();keys[key]=true;el.setPointerCapture(e.pointerId)}));['pointerup','pointercancel','pointerleave'].forEach(ev=>el.addEventListener(ev,e=>{e.preventDefault();keys[key]=false}))}
+bindTouch('leftTouch','left');bindTouch('rightTouch','right');bindTouch('jumpTouch','jump');
+function exportMap(){map.name=document.getElementById('mapName').value.trim()||'이름 없는 맵';const clean={version:1,name:map.name,objects:map.objects.map(({id,...o})=>o)};const text=JSON.stringify(clean);document.getElementById('mapCode').value=text;return text}
+function importMap(text){try{const data=JSON.parse(text);if(!Array.isArray(data.objects))throw Error();snapshot();map={name:String(data.name||'친구의 맵').slice(0,30),objects:data.objects.filter(o=>typeInfo[o.type]).map(o=>({id:uid(),type:o.type,x:+o.x||0,y:+o.y||0,w:Math.max(16,+o.w||64),h:Math.max(12,+o.h||24),range:+o.range||180,speed:+o.speed||1,axis:o.axis==='y'?'y':'x',phase:+o.phase||0}))};document.getElementById('mapName').value=map.name;selected=null;updateSelection();refreshBest();toast('친구 맵을 불러왔습니다.')}catch{toast('올바른 맵 코드가 아닙니다.')}}
+document.getElementById('saveBtn').onclick=()=>{const text=exportMap();localStorage.setItem('obby_saved_map',text);toast('브라우저에 맵을 저장했습니다.')};document.getElementById('loadLocalBtn').onclick=()=>{const t=localStorage.getItem('obby_saved_map');t?importMap(t):toast('저장된 맵이 없습니다.')};document.getElementById('copyBtn').onclick=async()=>{const t=exportMap();try{await navigator.clipboard.writeText(t);toast('맵 코드를 복사했습니다.')}catch{document.getElementById('mapCode').select();document.execCommand('copy');toast('맵 코드를 복사했습니다.')}};document.getElementById('importBtn').onclick=()=>importMap(document.getElementById('mapCode').value);
+document.getElementById('undoBtn').onclick=undo;document.getElementById('clearBtn').onclick=()=>{snapshot();map.objects=[];selected=null;updateSelection();toast('모든 장애물을 삭제했습니다.')};
+function resetMap(){snapshot();map=defaultMap();document.getElementById('mapName').value=map.name;selected=null;updateSelection();refreshBest();toast('예제 맵으로 초기화했습니다.')}
+document.getElementById('retryBtn').onclick=()=>beginRun();document.getElementById('backEditBtn').onclick=()=>{document.getElementById('modal').classList.remove('show');setMode('edit')};
+map=defaultMap();refreshBest();
+})();
+</script>
+</body>
+</html>
